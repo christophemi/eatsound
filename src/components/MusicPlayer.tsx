@@ -48,12 +48,33 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
   const playerRef = useRef<YTPlayer | null>(null);
   const iframeContainerRef = useRef<HTMLDivElement>(null);
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const watchdogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [progress, setProgress] = useState(0); // 0–100
   const [currentTime, setCurrentTime] = useState(0);
+
+  // Refs to avoid stale closures in YouTube event handlers
+  const currentIdxRef = useRef(currentIdx);
+  const tracksRef = useRef(tracks);
+  const stateChangeRef = useRef<((e: { data: number }) => void) | null>(null);
+  const errorRef = useRef<((e: { data: number }) => void) | null>(null);
+
+  useEffect(() => {
+    currentIdxRef.current = currentIdx;
+  }, [currentIdx]);
+
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
+  // Update handler refs to avoid stale closures
+  useEffect(() => {
+    stateChangeRef.current = handleStateChange;
+    errorRef.current = handlePlayerError;
+  });
 
   const currentTrack = tracks[currentIdx];
 
@@ -72,7 +93,7 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
       playerRef.current = new window.YT.Player(iframeContainerRef.current, {
         videoId: tracks[0].videoId,
         playerVars: {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           disablekb: 1,
           fs: 0,
@@ -82,8 +103,14 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
           playsinline: 1,
         },
         events: {
-          onReady: () => setIsReady(true),
-          onStateChange: handleStateChange,
+          onReady: () => {
+            setIsReady(true);
+            // Attempt auto-start on mount (especially useful after click from home)
+            playerRef.current?.playVideo();
+            startWatchdog();
+          },
+          onStateChange: (e: { data: number }) => stateChangeRef.current?.(e),
+          onError: (e: { data: number }) => errorRef.current?.(e),
         },
       });
     };
@@ -96,6 +123,7 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
 
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
       playerRef.current?.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,18 +135,42 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
     if (e.data === PLAYING) {
       setIsPlaying(true);
       startProgressTracking();
+      stopWatchdog();
     } else if (e.data === PAUSED) {
       setIsPlaying(false);
       stopProgressTracking();
     } else if (e.data === ENDED) {
       setIsPlaying(false);
       stopProgressTracking();
-      // Auto-advance
-      setCurrentIdx((prev) => {
-        const next = (prev + 1) % tracks.length;
-        playerRef.current?.loadVideoById(tracks[next].videoId);
-        return next;
-      });
+      handleAutoAdvance();
+    }
+  };
+
+  const handlePlayerError = (e: { data: number }) => {
+    console.error("YouTube Player Error:", e.data);
+    // Error 100: Video not found or private
+    // Error 101/150: Embedding not allowed
+    stopWatchdog();
+    handleAutoAdvance();
+  };
+
+  const handleAutoAdvance = () => {
+    const nextIdx = (currentIdxRef.current + 1) % tracksRef.current.length;
+    playTrack(nextIdx);
+  };
+
+  const startWatchdog = () => {
+    stopWatchdog();
+    watchdogTimerRef.current = setTimeout(() => {
+      console.warn("Watchdog triggered: Video stuck or blocked. Skipping...");
+      handleAutoAdvance();
+    }, 4000); // 4 seconds timeout
+  };
+
+  const stopWatchdog = () => {
+    if (watchdogTimerRef.current) {
+      clearTimeout(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
     }
   };
 
@@ -149,6 +201,7 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
       playerRef.current.pauseVideo();
     } else {
       playerRef.current.playVideo();
+      startWatchdog();
     }
   }, [isReady, isPlaying]);
 
@@ -158,9 +211,12 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
       setCurrentIdx(idx);
       setProgress(0);
       setCurrentTime(0);
-      playerRef.current.loadVideoById(tracks[idx].videoId);
+      // loadVideoById usually autoplays, but we force playVideo for reliability
+      playerRef.current.loadVideoById(tracksRef.current[idx].videoId);
+      playerRef.current.playVideo();
+      startWatchdog();
     },
-    [isReady, tracks]
+    [isReady]
   );
 
   const playPrev = useCallback(() => {

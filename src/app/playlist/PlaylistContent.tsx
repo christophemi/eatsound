@@ -53,11 +53,14 @@ export default function PlaylistContent() {
   }
 
   const mood = getMoodById(recipe.mood);
-  const tracks = getTracksForMood(recipe.mood);
-  const totalMinutes = recipe.steps.reduce(
-    (s, st) => s + (st.durationMinutes || 0),
-    0
-  );
+
+  const totalMinutes = useMemo(() => {
+    return recipe.steps.reduce((s, st) => s + (st.durationMinutes || 0), 0);
+  }, [recipe.steps]);
+
+  const tracks = useMemo(() => {
+    return getTracksForMood(recipe.mood, totalMinutes);
+  }, [recipe.mood, totalMinutes]);
 
   const toggleStep = (id: string) => {
     setCheckedSteps((prev) => {
