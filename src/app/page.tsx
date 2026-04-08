@@ -1,65 +1,266 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { MOODS, getMoodById, formatDuration, newStepId } from "@/lib/data";
+import type { MoodId, RecipeStep } from "@/lib/types";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
+export default function HomePage() {
+  const router = useRouter();
+  const [dishName, setDishName] = useState("");
+  const [selectedMood, setSelectedMood] = useState<MoodId | null>(null);
+  const [steps, setSteps] = useState<RecipeStep[]>(() => [
+    { id: "step_default_1", description: "", durationMinutes: 5 },
+  ]);
+
+  const totalMinutes = steps.reduce((s, st) => s + (st.durationMinutes || 0), 0);
+
+  /* ── Step helpers ── */
+  const addStep = useCallback(() => {
+    setSteps((prev) => [
+      ...prev,
+      { id: newStepId(), description: "", durationMinutes: 5 },
+    ]);
+  }, []);
+
+  const removeStep = useCallback((id: string) => {
+    setSteps((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const updateStep = useCallback(
+    (id: string, field: keyof RecipeStep, value: string | number) => {
+      setSteps((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+      );
+    },
+    []
+  );
+
+  /* ── Submit ── */
+  const canSubmit =
+    dishName.trim().length > 0 &&
+    selectedMood !== null &&
+    steps.length > 0 &&
+    steps.every((s) => s.description.trim().length > 0) &&
+    totalMinutes > 0;
+
+  const handleSubmit = () => {
+    if (!canSubmit || !selectedMood) return;
+    const payload = { dishName: dishName.trim(), mood: selectedMood, steps };
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    router.push(`/playlist?data=${encoded}`);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <>
+      <div className="bg-animated" />
+
+      <main className="app-shell">
+        {/* ── Header ── */}
+        <header className="page-header fade-up">
+          <span className="logo-icon">🎵</span>
+          <h1>
+            <span style={{ color: "var(--accent-light)" }}>Eat</span>Sound
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+          <p>Ta recette mérite une bande-son parfaite&nbsp;🍳</p>
+        </header>
+
+        <div className="form-stack">
+          {/* ── Dish name ── */}
+          <section className="card fade-up-d1">
+            <label className="label" htmlFor="dish-name">
+              🍽️ Ton plat
+            </label>
+            <input
+              id="dish-name"
+              className="input-field"
+              type="text"
+              placeholder="Ex : Pizza au fromage, Ramen maison…"
+              value={dishName}
+              onChange={(e) => setDishName(e.target.value)}
+              maxLength={80}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </section>
+
+          {/* ── Mood selector ── */}
+          <section className="card fade-up-d2">
+            <p className="label">🎭 Ton humeur</p>
+            <div className="mood-grid">
+              {MOODS.map((mood) => {
+                const active = selectedMood === mood.id;
+                return (
+                  <button
+                    key={mood.id}
+                    id={`mood-${mood.id}`}
+                    className={`mood-chip${active ? " active" : ""}`}
+                    style={
+                      {
+                        "--chip-color": mood.color,
+                        "--chip-glow": mood.glow,
+                      } as React.CSSProperties
+                    }
+                    onClick={() => setSelectedMood(mood.id as MoodId)}
+                    aria-pressed={active}
+                  >
+                    <span className="emoji">{mood.emoji}</span>
+                    <span className="mood-label">{mood.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedMood && (
+              <div className="genre-info" style={{ marginTop: 14 }}>
+                <span>🎸</span>
+                <span>
+                  <strong>{getMoodById(selectedMood)?.genre}</strong>
+                  &nbsp;·&nbsp;{getMoodById(selectedMood)?.description}
+                </span>
+              </div>
+            )}
+          </section>
+
+          {/* ── Recipe steps ── */}
+          <section className="card fade-up-d3">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <p className="label" style={{ margin: 0 }}>
+                📋 Les étapes
+              </p>
+              {totalMinutes > 0 && (
+                <span className="duration-pill">
+                  ⏱ {formatDuration(totalMinutes)}
+                </span>
+              )}
+            </div>
+
+            {/* Steps list */}
+            <div>
+              {steps.map((step, idx) => (
+                <div key={step.id} className="step-item">
+                  <span className="step-number">{idx + 1}</span>
+                  <div className="step-content">
+                    <textarea
+                      id={`step-desc-${step.id}`}
+                      className="input-field"
+                      placeholder={`Étape ${idx + 1} — ex: Pétrir la pâte`}
+                      value={step.description}
+                      rows={2}
+                      onChange={(e) =>
+                        updateStep(step.id, "description", e.target.value)
+                      }
+                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--text-muted)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ⏱
+                      </span>
+                      <input
+                        id={`step-dur-${step.id}`}
+                        className="input-field"
+                        type="number"
+                        min={1}
+                        max={300}
+                        placeholder="min"
+                        value={step.durationMinutes || ""}
+                        style={{ maxWidth: 90 }}
+                        onChange={(e) =>
+                          updateStep(
+                            step.id,
+                            "durationMinutes",
+                            parseInt(e.target.value, 10) || 0
+                          )
+                        }
+                      />
+                      <span
+                        style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}
+                      >
+                        min
+                      </span>
+                      {steps.length > 1 && (
+                        <button
+                          className="delete-btn"
+                          onClick={() => removeStep(step.id)}
+                          aria-label="Supprimer cette étape"
+                          style={{ marginLeft: "auto" }}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button className="add-step-btn" onClick={addStep} id="add-step-btn">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Ajouter une étape
+            </button>
+          </section>
+
+          {/* ── Total summary ── */}
+          {totalMinutes > 0 && (
+            <div className="total-duration fade-up">
+              <div className="big-time">{formatDuration(totalMinutes)}</div>
+              <div className="big-label">Durée totale de ta recette</div>
+            </div>
+          )}
+
+          {/* ── CTA ── */}
+          <button
+            id="generate-playlist-btn"
+            className="btn-primary pulse-glow"
+            disabled={!canSubmit}
+            onClick={handleSubmit}
           >
-            Documentation
-          </a>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
+            </svg>
+            Générer ma playlist
+          </button>
         </div>
       </main>
-    </div>
+    </>
   );
 }
