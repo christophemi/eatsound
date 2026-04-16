@@ -13,7 +13,8 @@ export default function HomePage() {
     { id: "step_default_1", description: "", durationMinutes: 5 },
   ]);
 
-  const totalMinutes = steps.reduce((s, st) => s + (st.durationMinutes || 0), 0);
+  const activeSteps = steps.filter((s) => s.description.trim().length > 0);
+  const totalMinutes = activeSteps.reduce((s, st) => s + (st.durationMinutes || 0), 0);
 
   /* ── Step helpers ── */
   const addStep = useCallback(() => {
@@ -39,14 +40,11 @@ export default function HomePage() {
   /* ── Submit ── */
   const canSubmit =
     dishName.trim().length > 0 &&
-    selectedMood !== null &&
-    steps.length > 0 &&
-    steps.every((s) => s.description.trim().length > 0) &&
-    totalMinutes > 0;
+    selectedMood !== null;
 
   const handleSubmit = () => {
     if (!canSubmit || !selectedMood) return;
-    const payload = { dishName: dishName.trim(), mood: selectedMood, steps };
+    const payload = { dishName: dishName.trim(), mood: selectedMood, steps: activeSteps };
     const encoded = encodeURIComponent(JSON.stringify(payload));
     router.push(`/playlist?data=${encoded}`);
   };

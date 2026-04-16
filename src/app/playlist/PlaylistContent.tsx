@@ -108,55 +108,61 @@ export default function PlaylistContent() {
                 {mood.emoji} {mood.label}
               </span>
             )}
-            <span className="meta-badge">⏱ {formatDuration(totalMinutes)}</span>
-            <span className="meta-badge">
-              📋 {recipe.steps.length} étape{recipe.steps.length > 1 ? "s" : ""}
-            </span>
+            {totalMinutes > 0 && <span className="meta-badge">⏱ {formatDuration(totalMinutes)}</span>}
+            {recipe.steps.length > 0 && (
+              <span className="meta-badge">
+                📋 {recipe.steps.length} étape{recipe.steps.length > 1 ? "s" : ""}
+              </span>
+            )}
             {mood && <span className="meta-badge">🎸 {mood.genre}</span>}
           </div>
 
           {/* Progress bar recette */}
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                PROGRESSION RECETTE <span style={{ fontWeight: 400, opacity: 0.7 }}>(cochez les étapes)</span>
-              </span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 700, color: progressPct === 100 ? "var(--accent3)" : "var(--accent-light)" }}>
-                {progressPct}%
-              </span>
+          {recipe.steps.length > 0 && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                  PROGRESSION RECETTE <span style={{ fontWeight: 400, opacity: 0.7 }}>(cochez les étapes)</span>
+                </span>
+                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: progressPct === 100 ? "var(--accent3)" : "var(--accent-light)" }}>
+                  {progressPct}%
+                </span>
+              </div>
+              <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${progressPct}%`,
+                    background: progressPct === 100 ? "var(--accent3)" : "linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 100%)",
+                    borderRadius: 999,
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 999, overflow: "hidden" }}>
-              <div
-                style={{
-                  height: "100%",
-                  width: `${progressPct}%`,
-                  background: progressPct === 100 ? "var(--accent3)" : "linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 100%)",
-                  borderRadius: 999,
-                  transition: "width 0.4s ease",
-                }}
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         <div style={{ padding: "16px 20px 0" }}>
           {/* ── Tabs ── */}
-          <div className="tabs fade-up-d1" style={{ marginBottom: 16 }}>
-            <button
-              id="tab-musique"
-              className={`tab${activeTab === "musique" ? " active" : ""}`}
-              onClick={() => setActiveTab("musique")}
-            >
-              🎵 Musique
-            </button>
-            <button
-              id="tab-recette"
-              className={`tab${activeTab === "recette" ? " active" : ""}`}
-              onClick={() => setActiveTab("recette")}
-            >
-              📋 Recette
-            </button>
-          </div>
+          {recipe.steps.length > 0 && (
+            <div className="tabs fade-up-d1" style={{ marginBottom: 16 }}>
+              <button
+                id="tab-musique"
+                className={`tab${activeTab === "musique" ? " active" : ""}`}
+                onClick={() => setActiveTab("musique")}
+              >
+                🎵 Musique
+              </button>
+              <button
+                id="tab-recette"
+                className={`tab${activeTab === "recette" ? " active" : ""}`}
+                onClick={() => setActiveTab("recette")}
+              >
+                📋 Recette
+              </button>
+            </div>
+          )}
 
           {/* ── Persistent Music Player ── */}
           {mood && (
@@ -165,7 +171,7 @@ export default function PlaylistContent() {
                 tracks={tracks}
                 mood={mood}
                 totalMinutes={totalMinutes}
-                mode={activeTab === "musique" ? "full" : "mini"}
+                mode={recipe.steps.length === 0 || activeTab === "musique" ? "full" : "mini"}
               />
             </div>
           )}
