@@ -6,6 +6,8 @@ export type MoodId =
   | "nostalgique"
   | "famille";
 
+export type MealDurationOption = "none" | "rapide" | "chill" | "all";
+
 export interface RecipeStep {
   id: string;
   description: string;
@@ -16,6 +18,7 @@ export interface Recipe {
   dishName: string;
   mood: MoodId;
   steps: RecipeStep[];
+  mealDuration?: MealDurationOption;
 }
 
 export interface Mood {

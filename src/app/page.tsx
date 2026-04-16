@@ -1,7 +1,7 @@
 "use client";
 
 import { MOODS, getMoodById, formatDuration, newStepId } from "@/lib/data";
-import type { MoodId, RecipeStep } from "@/lib/types";
+import type { MoodId, RecipeStep, MealDurationOption } from "@/lib/types";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -9,6 +9,7 @@ export default function HomePage() {
   const router = useRouter();
   const [dishName, setDishName] = useState("");
   const [selectedMood, setSelectedMood] = useState<MoodId | null>(null);
+  const [mealDuration, setMealDuration] = useState<MealDurationOption>("none");
   const [steps, setSteps] = useState<RecipeStep[]>(() => [
     { id: "step_default_1", description: "", durationMinutes: 5 },
   ]);
@@ -44,7 +45,7 @@ export default function HomePage() {
 
   const handleSubmit = () => {
     if (!canSubmit || !selectedMood) return;
-    const payload = { dishName: dishName.trim(), mood: selectedMood, steps: activeSteps };
+    const payload = { dishName: dishName.trim(), mood: selectedMood, steps: activeSteps, mealDuration };
     const encoded = encodeURIComponent(JSON.stringify(payload));
     router.push(`/playlist?data=${encoded}`);
   };
@@ -228,6 +229,40 @@ export default function HomePage() {
               </svg>
               Ajouter une étape
             </button>
+          </section>
+
+          {/* ── Meal duration ── */}
+          <section className="card fade-up-d4">
+            <p className="label">⏱ Temps de dégustation</p>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 12 }}>
+              On prolonge la musique après la préparation ?
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button
+                className={`tab${mealDuration === "none" ? " active" : ""}`}
+                onClick={() => setMealDuration("none")}
+              >
+                Non, juste la recette
+              </button>
+              <button
+                className={`tab${mealDuration === "rapide" ? " active" : ""}`}
+                onClick={() => setMealDuration("rapide")}
+              >
+                ⚡ Rapide (10 min)
+              </button>
+              <button
+                className={`tab${mealDuration === "chill" ? " active" : ""}`}
+                onClick={() => setMealDuration("chill")}
+              >
+                🍷 Chill (30 min)
+              </button>
+              <button
+                className={`tab${mealDuration === "all" ? " active" : ""}`}
+                onClick={() => setMealDuration("all")}
+              >
+                🎶 Toute la playlist
+              </button>
+            </div>
           </section>
 
           {/* ── Total summary ── */}

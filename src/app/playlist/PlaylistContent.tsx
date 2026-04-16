@@ -58,9 +58,17 @@ export default function PlaylistContent() {
     return recipe.steps.reduce((s, st) => s + (st.durationMinutes || 0), 0);
   }, [recipe.steps]);
 
+  const playlistDurationMin = useMemo(() => {
+    if (recipe.mealDuration === "all") return 0;
+    let extra = 0;
+    if (recipe.mealDuration === "rapide") extra = 10;
+    if (recipe.mealDuration === "chill") extra = 30;
+    return totalMinutes + extra;
+  }, [recipe.mealDuration, totalMinutes]);
+
   const tracks = useMemo(() => {
-    return getTracksForMood(recipe.mood, totalMinutes);
-  }, [recipe.mood, totalMinutes]);
+    return getTracksForMood(recipe.mood, playlistDurationMin);
+  }, [recipe.mood, playlistDurationMin]);
 
   const toggleStep = (id: string) => {
     setCheckedSteps((prev) => {
@@ -108,7 +116,10 @@ export default function PlaylistContent() {
                 {mood.emoji} {mood.label}
               </span>
             )}
-            {totalMinutes > 0 && <span className="meta-badge">⏱ {formatDuration(totalMinutes)}</span>}
+            {totalMinutes > 0 && <span className="meta-badge">⏱ {formatDuration(totalMinutes)}{recipe.mealDuration && recipe.mealDuration !== "none" ? " recette" : ""}</span>}
+            {recipe.mealDuration === "rapide" && <span className="meta-badge">⚡ +10 min repas</span>}
+            {recipe.mealDuration === "chill" && <span className="meta-badge">🍷 +30 min repas</span>}
+            {recipe.mealDuration === "all" && <span className="meta-badge">🎶 Playlist complète</span>}
             {recipe.steps.length > 0 && (
               <span className="meta-badge">
                 📋 {recipe.steps.length} étape{recipe.steps.length > 1 ? "s" : ""}
@@ -170,7 +181,7 @@ export default function PlaylistContent() {
               <MusicPlayer
                 tracks={tracks}
                 mood={mood}
-                totalMinutes={totalMinutes}
+                totalMinutes={playlistDurationMin}
                 mode={recipe.steps.length === 0 || activeTab === "musique" ? "full" : "mini"}
               />
             </div>
