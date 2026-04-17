@@ -189,6 +189,21 @@ textarea.input-field {
   margin-bottom: 16px;
 }
 
+.mood-phase-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  padding-left: 4px;
+  border-left: 3px solid var(--accent);
+}
+
+
 /* ── Mood chips ── */
 .mood-grid {
   display: grid;

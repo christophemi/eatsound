@@ -1,7 +1,7 @@
 "use client";
 
-import { MOODS, getMoodById, formatDuration, newStepId } from "@/lib/data";
-import type { MoodId, RecipeStep, MealDurationOption } from "@/lib/types";
+import { MOODS, PHASES, getMoodById, formatDuration, newStepId } from "@/lib/data";
+import type { MoodId, RecipeStep, MealDurationOption, PhaseId } from "@/lib/types";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
@@ -83,33 +83,43 @@ export default function HomePage() {
 
           {/* ── Mood selector ── */}
           <section className="card fade-up-d2">
-            <p className="label">🎭 Ton humeur</p>
-            <div className="mood-grid">
-              {MOODS.map((mood) => {
-                const active = selectedMood === mood.id;
-                return (
-                  <button
-                    key={mood.id}
-                    id={`mood-${mood.id}`}
-                    className={`mood-chip${active ? " active" : ""}`}
-                    style={
-                      {
-                        "--chip-color": mood.color,
-                        "--chip-glow": mood.glow,
-                      } as React.CSSProperties
-                    }
-                    onClick={() => setSelectedMood(mood.id as MoodId)}
-                    aria-pressed={active}
-                  >
-                    <span className="emoji">{mood.emoji}</span>
-                    <span className="mood-label">{mood.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <p className="label">🎭 Ton ambiance</p>
+            
+            {(Object.keys(PHASES) as PhaseId[]).map((phaseId) => (
+              <div key={phaseId} style={{ marginBottom: phaseId === "table" ? 0 : 20 }}>
+                <div className="mood-phase-title">
+                  <span>{PHASES[phaseId].emoji}</span>
+                  <span>{PHASES[phaseId].label}</span>
+                </div>
+                <div className="mood-grid">
+                  {MOODS.filter(m => m.phaseId === phaseId).map((mood) => {
+                    const active = selectedMood === mood.id;
+                    return (
+                      <button
+                        key={mood.id}
+                        id={`mood-${mood.id}`}
+                        className={`mood-chip${active ? " active" : ""}`}
+                        style={
+                          {
+                            "--chip-color": mood.color,
+                            "--chip-glow": mood.glow,
+                          } as React.CSSProperties
+                        }
+                        onClick={() => setSelectedMood(mood.id as MoodId)}
+                        aria-pressed={active}
+                      >
+                        <span className="emoji">{mood.emoji}</span>
+                        <span className="mood-label">{mood.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
 
             {selectedMood && (
-              <div className="genre-info" style={{ marginTop: 14 }}>
+              <div className="genre-info" style={{ marginTop: 18 }}>
                 <span>🎸</span>
                 <span>
                   <strong>{getMoodById(selectedMood)?.genre}</strong>

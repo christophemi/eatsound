@@ -1,17 +1,26 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { getMoodById, formatDuration } from "@/lib/data";
 import { getTracksForMood } from "@/lib/tracks";
 import type { Recipe, RecipeStep } from "@/lib/types";
 import MusicPlayer from "@/components/MusicPlayer";
+import { useWakeLock } from "@/hooks/useWakeLock";
 
 export default function PlaylistContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"recette" | "musique">("musique");
   const [checkedSteps, setCheckedSteps] = useState<Set<string>>(new Set());
+  const [mounted, setMounted] = useState(false);
+  const { isActive: isWakeLockActive, isSupported: isWakeLockSupported } = useWakeLock();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+
 
   /* ── Parse data from URL ── */
   const recipe: Recipe | null = useMemo(() => {
@@ -126,7 +135,18 @@ export default function PlaylistContent() {
               </span>
             )}
             {mood && <span className="meta-badge">🎸 {mood.genre}</span>}
+            {isWakeLockActive && (
+              <span className="meta-badge" style={{ borderColor: "var(--accent3)", color: "var(--accent3)", background: "rgba(67,233,123,0.05)" }}>
+                ☀️ Écran actif
+              </span>
+            )}
+            {!isWakeLockActive && isWakeLockSupported && (
+              <span className="meta-badge" style={{ opacity: 0.6 }}>
+                🌙 Veille auto
+              </span>
+            )}
           </div>
+
 
           {/* Progress bar recette */}
           {recipe.steps.length > 0 && (
@@ -176,7 +196,7 @@ export default function PlaylistContent() {
           )}
 
           {/* ── Persistent Music Player ── */}
-          {mood && (
+          {mood && mounted ? (
             <div className="fade-up">
               <MusicPlayer
                 tracks={tracks}
@@ -185,7 +205,12 @@ export default function PlaylistContent() {
                 mode={recipe.steps.length === 0 || activeTab === "musique" ? "full" : "mini"}
               />
             </div>
+          ) : (
+            <div className="card fade-up" style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="spinner" style={{ width: 30, height: 30, border: "3px solid var(--accent-dim)", borderTopColor: "var(--accent)" }} />
+            </div>
           )}
+
 
           {/* ── Recette View ── */}
           {activeTab === "recette" && (

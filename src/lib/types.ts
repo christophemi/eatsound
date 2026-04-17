@@ -1,12 +1,23 @@
+export type PhaseId = "essentiels" | "cuisine" | "table";
+
 export type MoodId =
   | "festif"
   | "romantique"
   | "zen"
   | "energie"
   | "nostalgique"
-  | "famille";
+  | "famille"
+  | "en_cuisine"
+  | "a_table"
+  | "italiano"
+  | "barbecue"
+  | "bistro_parisien"
+  | "brunch_chill"
+  | "coup_de_feu";
 
 export type MealDurationOption = "none" | "rapide" | "chill" | "all";
+
+
 
 export interface RecipeStep {
   id: string;
@@ -23,6 +34,7 @@ export interface Recipe {
 
 export interface Mood {
   id: MoodId;
+  phaseId: PhaseId;
   label: string;
   emoji: string;
   genre: string;
@@ -31,3 +43,4 @@ export interface Mood {
   youtubePlaylistId: string;
   description: string;
 }
+

@@ -101,6 +101,7 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
           modestbranding: 1,
           rel: 0,
           playsinline: 1,
+          origin: window.location.origin,
         },
         events: {
           onReady: () => {
@@ -147,7 +148,7 @@ export default function MusicPlayer({ tracks, mood, totalMinutes, mode = "full" 
   };
 
   const handlePlayerError = (e: { data: number }) => {
-    console.error("YouTube Player Error:", e.data);
+    console.warn("YouTube Player Error (handled):", e.data);
     // Error 100: Video not found or private
     // Error 101/150: Embedding not allowed
     stopWatchdog();
